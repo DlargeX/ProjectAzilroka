@@ -8,121 +8,54 @@ SMB.Authors = 'Azilroka    Sinaris    Omega    Durc'
 SMB.isEnabled = false
 
 local _G = _G
-local strsub = strsub
-local strlen = strlen
 local strfind = strfind
 local strmatch = strmatch
 local strlower = strlower
 local tinsert = tinsert
 local pairs = pairs
 local unpack = unpack
-local select = select
-local tContains = tContains
 local tostring = tostring
-local floor = floor
 
 local InCombatLockdown = InCombatLockdown
 local C_PetBattles = C_PetBattles
 local Minimap = Minimap
 
-local rad = math.rad
-local cos = math.cos
-local sin = math.sin
-local sqrt = math.sqrt
-local max = math.max
-local min = math.min
-local deg = math.deg
-local atan2 = math.atan2
-
 local CreateFrame = CreateFrame
 local GameTooltip = GameTooltip
-local GetCursorPosition = GetCursorPosition
 local HasNewMail = HasNewMail
 local MinimapMailFrameUpdate = MinimapMailFrameUpdate
 
 SMB.Buttons = {}
 
 SMB.IgnoreButton = {
-	'HelpOpenWebTicketButton',
-	'MiniMapVoiceChatFrame',
-	'TimeManagerClockButton',
-	'BattlefieldMinimap',
-	'ButtonCollectFrame',
-	'GameTimeFrame',
-	'QueueStatusButton',
-	'ExpansionLandingPageMinimapButton',
-	'MiniMapMailFrame',
-	'MiniMapTracking',
-	'MinimapZoomIn',
-	'MinimapZoomOut',
-	'TukuiMinimapZone',
-	'TukuiMinimapCoord',
-	'RecipeRadarMinimapButtonFrame',
-	'InstanceDifficultyFrame',
-}
-
-SMB.GenericIgnore = {
-	'Archy',
-	'GatherMatePin',
-	'GatherNote',
-	'GuildInstance',
-	'HandyNotesPin',
-	'MiniMap',
-	'Spy_MapNoteList_mini',
-	'ZGVMarker',
-	'poiMinimap',
-	'GuildMap3Mini',
-	'LibRockConfig-1.0_MinimapButton',
-	'MinimapLayerFrame', -- Nova World Buffs
-	'NauticusMiniIcon',
-	'WestPointer',
-	'Cork',
-	'DugisArrowMinimapPoint',
-	'QuestieFrame',
-	'TTMinimapButton',
-	'SL_MinimapDifficultyFrame', -- S&L Instance Indicator
-}
-
-SMB.PartialIgnore = { 'Node', 'Pin', 'POI' }
-
-SMB.OverrideTexture = {
-	BagSync_MinimapButton = 'Interface/AddOns/BagSync/media/icon',
-	DBMMinimapButton = 'Interface/Icons/INV_Helmet_87',
-	SmartBuff_MiniMapButton = 'Interface/Icons/Spell_Nature_Purge',
-	VendomaticButtonFrame = 'Interface/Icons/INV_Misc_Rabbit_2',
-	OutfitterMinimapButton = '',
-	RecipeRadar_MinimapButton = 'Interface/Icons/INV_Scroll_03',
-	GameTimeFrame = ''
-}
-
-SMB.DoNotCrop = {
-	ZygorGuidesViewerMapIcon = true,
-	ItemRackMinimapFrame = true,
-	Narci_MinimapButton = true,
-}
-
-SMB.UnrulyButtons = {
-	'WIM3MinimapButton',
-	'RecipeRadar_MinimapButton',
+	BattlefieldMinimap = true,
+	ButtonCollectFrame = true,
+	ElvUI_MinimapHolder = true,
+	ExpansionLandingPageMinimapButton = true,
+	GameTimeFrame = true,
+	HelpOpenWebTicketButton = true,
+	HelpOpenTicketButton = true,
+	InstanceDifficultyFrame = true,
+	MinimapBackdrop = true,
+	MiniMapMailFrame = true,
+	MinimapPanel = true,
+	MiniMapTracking = true,
+	MiniMapVoiceChatFrame = true,
+	MinimapZoomIn = true,
+	MinimapZoomOut = true,
+	QueueStatusButton = true,
+	RecipeRadarMinimapButtonFrame = true,
+	SexyMapCustomBackdrop = true,
+	SexyMapPingFrame = true,
+	TimeManagerClockButton = true,
+	TukuiMinimapCoord = true,
+	TukuiMinimapZone = true,
 }
 
 local ButtonFunctions = { 'SetParent', 'ClearAllPoints', 'SetPoint', 'SetSize', 'SetScale', 'SetIgnoreParentScale', 'SetFrameStrata', 'SetFrameLevel' }
 
-local RemoveTextureID = {
-	[136430] = true,
-	[136467] = true,
-	[136477] = true,
-	[136468] = true,
-	[130924] = true,
-}
-
-local RemoveTextureFile = {
-	'interface/characterframe',
-	'border',
-	'background',
-	'alphamask',
-	'highlight'
-}
+local RemoveTextureID = { [136430] = true, [136467] = true, [136477] = true, [136468] = true, [130924] = true }
+local RemoveTextureFile = { 'interface/characterframe', 'border', 'background', 'alphamask', 'highlight' }
 
 function SMB:RemoveTexture(texture)
 	if type(texture) == 'string' then
@@ -157,36 +90,6 @@ end
 function SMB:ToggleBar_FrameStrataLevel(value)
 	if SMB.Bar.SetFixedFrameStrata then SMB.Bar:SetFixedFrameStrata(value) end
 	if SMB.Bar.SetFixedFrameLevel then SMB.Bar:SetFixedFrameLevel(value) end
-end
-
-function SMB:OnUpdate()
-	local mx, my = Minimap:GetCenter()
-	local px, py = GetCursorPosition()
-	local scale = Minimap:GetEffectiveScale()
-
-	px, py = px / scale, py / scale
-
-	local pos = deg(atan2(py - my, px - mx)) % 360
-	local angle = rad(pos or 225)
-	local x, y = cos(angle), sin(angle)
-	local w = (Minimap:GetWidth() + SMB.db.IconSize) / 2
-	local h = (Minimap:GetHeight() + SMB.db.IconSize) / 2
-	local diagRadiusW = sqrt(2*(w)^2)-10
-	local diagRadiusH = sqrt(2*(h)^2)-10
-
-	x = max(-w, min(x*diagRadiusW, w))
-	y = max(-h, min(y*diagRadiusH, h))
-
-	self:ClearAllPoints()
-	self:SetPoint("CENTER", Minimap, "CENTER", x, y)
-end
-
-function SMB:OnDragStart()
-	self:SetScript("OnUpdate", SMB.OnUpdate)
-end
-
-function SMB:OnDragStop()
-	self:SetScript("OnUpdate", nil)
 end
 
 function SMB:HandleBlizzardButtons()
@@ -374,44 +277,9 @@ function SMB:HandleBlizzardButtons()
 	else
 		-- MiniMapTrackingFrame
 		if SMB.db.MoveGameTimeFrame and not _G.GameTimeFrame.SMB then
-			local STEP = 5.625 -- 256 * 5.625 = 1440M = 24H
-			local PX_PER_STEP = 0.00390625 -- 1 / 256
-			local l, r, offset
-
 			PA:SetTemplate(_G.GameTimeFrame)
 			_G.GameTimeTexture:SetTexture('')
 
-			--_G.GameTimeFrame.DayTimeIndicator = _G.GameTimeFrame:CreateTexture(nil, "BACKGROUND", nil, 1)
-			--_G.GameTimeFrame.DayTimeIndicator:SetTexture("Interface/Minimap/HumanUITile-TimeIndicator", true)
-			--PA:SetInside(_G.GameTimeFrame.DayTimeIndicator)
-
-			--_G.GameTimeFrame:SetSize(Size, Size)
-
-			--_G.GameTimeFrame.timeOfDay = 0
-			--local function OnUpdate(s, elapsed)
-			--	s.elapsed = (s.elapsed or 1) + elapsed
-			--	if s.elapsed > 1 then
-			--		local hour, minute = _G.GetGameTime()
-			--		local time = hour * 60 + minute
-			--		if time ~= s.timeOfDay then
-			--			offset = PX_PER_STEP * floor(time / STEP)
-
-			--			l = 0.25 + offset -- 64 / 256
-			--			if l >= 1.25 then l = 0.25 end
-
-			--			r = 0.75 + offset -- 192 / 256
-			--			if r >= 1.75 then r = 0.75 end
-
-			--			s.DayTimeIndicator:SetTexCoord(l, r, 0, 1)
-
-			--			s.timeOfDay = time
-			--		end
-
-			--		s.elapsed = 0
-			--	end
-			--end
-
-			--_G.GameTimeFrame:SetScript("OnUpdate", OnUpdate)
 			_G.GameTimeFrame.SMB = true
 			tinsert(SMB.Buttons, _G.GameTimeFrame)
 		end
@@ -423,21 +291,6 @@ function SMB:HandleBlizzardButtons()
 end
 
 function SMB:SkinMinimapButton(button)
-	if (not button) or button.isSkinned then return end
-
-	local name = button.GetName and button:GetName()
-	if not name then return end
-
-	if tContains(SMB.IgnoreButton, name) then return end
-
-	for _, genericIgnore in next, SMB.GenericIgnore do
-		if strsub(name, 1, strlen(genericIgnore)) == genericIgnore then return end
-	end
-
-	for _, partialIgnore in next, SMB.PartialIgnore do
-		if strmatch(name, partialIgnore) then return end
-	end
-
 	for _, frames in next, { button, button:GetChildren() } do
 		for _, region in next, { frames:GetRegions() } do
 			if region.IsObjectType and region:IsObjectType('Texture') then
@@ -450,15 +303,12 @@ function SMB:SkinMinimapButton(button)
 					region:SetTexture()
 					region:SetAlpha(0)
 				else
-					if SMB.OverrideTexture[name] then
-						region:SetTexture(SMB.OverrideTexture[name])
-					end
-
 					region:ClearAllPoints()
 					region:SetDrawLayer('ARTWORK')
 					PA:SetInside(region)
 
-					if not SMB.DoNotCrop[name] and not button.ignoreCrop then
+					local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = region:GetTexCoord()
+					if ULx == 0 and ULy == 0 and LLx == 0 and LLy == 1 and URx == 1 and URy == 0 and LRx == 1 and LRy == 1 then
 						region:SetTexCoord(unpack(PA.TexCoords))
 						button:HookScript('OnLeave', function() region:SetTexCoord(unpack(PA.TexCoords)) end)
 					end
@@ -481,9 +331,6 @@ function SMB:SkinMinimapButton(button)
 		end
 	end
 
-	--Button:SetScript('OnDragStart', SMB.OnDragStart)
-	--Button:SetScript('OnDragStop', SMB.OnDragStop)
-
 	button:HookScript('OnEnter', function()
 		if SMB.Bar:IsShown() then
 			UIFrameFadeIn(SMB.Bar, 0.2, SMB.Bar:GetAlpha(), 1)
@@ -504,21 +351,14 @@ end
 function SMB:GrabMinimapButtons(forceUpdate)
 	if (InCombatLockdown() or C_PetBattles and C_PetBattles.IsInBattle()) then return end
 
-	for _, Button in pairs(SMB.UnrulyButtons) do
-		if _G[Button] then
-			_G[Button]:SetParent(Minimap)
-		end
-	end
-
 	local UpdateBar = forceUpdate
-	for _, Frame in pairs({ Minimap, _G.MinimapBackdrop, _G.MinimapCluster }) do
-		for _, child in pairs({ Frame:GetChildren() }) do
-			local name = child.GetName and child:GetName()
-			local width = child.GetWidth and child:GetWidth()
-			if name and width > 15 and width < 60 and (child:IsObjectType('Button') or child:IsObjectType('Frame')) then
-				SMB:SkinMinimapButton(child)
-				UpdateBar = true
-			end
+
+	for _, btn in ipairs({Minimap:GetChildren()}) do
+		local name = btn.GetName and btn:GetName() or btn.name
+
+		if not (not name or SMB.IgnoreButton[name] or btn.isSkinned or btn.uiMapID or btn.waypoint or (btn.data and btn.data.UiMapID) or (name and strmatch(name, "^QuestieFrame"))) then
+			SMB:SkinMinimapButton(btn)
+			UpdateBar = true
 		end
 	end
 
@@ -569,7 +409,6 @@ function SMB:Update()
 			Button:SetFrameLevel(SMB.db.Level + 1)
 			Button:SetScript('OnDragStart', nil)
 			Button:SetScript('OnDragStop', nil)
-			--Button:SetScript('OnEvent', nil)
 
 			SMB:LockButton(Button)
 
