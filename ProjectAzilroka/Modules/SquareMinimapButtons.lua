@@ -356,7 +356,15 @@ function SMB:GrabMinimapButtons(forceUpdate)
 	for _, btn in ipairs({Minimap:GetChildren()}) do
 		local name = btn.GetName and btn:GetName() or btn.name
 
-		if not (not name or SMB.IgnoreButton[name] or btn.isSkinned or btn.uiMapID or btn.waypoint or (btn.data and btn.data.UiMapID) or (name and strmatch(name, "^QuestieFrame"))) then
+		if not (not name or -- don't want unnamed ones
+			SMB.IgnoreButton[name] or -- Ignored by default
+			btn.isSkinned or -- Skinned buttons
+			btn.uiMapID or -- HereBeDragons | HandyNotes
+			(btn.waypoint or btn.isZygorWaypoint) or -- Zygor
+			(btn.title and btn.x and btn.y) or -- GatherMate2
+			(btn.data and btn.data.UiMapID) or (name and strmatch(name, "^QuestieFrame"))) or -- Questie
+			(btn.point and btn.point.uid)  -- TomTom
+		then
 			SMB:SkinMinimapButton(btn)
 			UpdateBar = true
 		end
