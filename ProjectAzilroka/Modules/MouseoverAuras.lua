@@ -26,8 +26,7 @@ function MA:CreateAuraIcon(index)
 	button:EnableMouse(false)
 	button.Icon:SetTexCoord(unpack(PA.TexCoords))
 
-	PA:CreateBackdrop(button)
-	PA:CreateShadow(button)
+	PA:SetTemplate(button)
 	PA:RegisterCooldown(button.Cooldown)
 
 	MA.Holder.createdIcons = MA.Holder.createdIcons + 1
@@ -60,23 +59,23 @@ function MA:UpdateIcon(unit, index, offset, filter, isDebuff, visible)
 			button.Cooldown:SetCooldown(expiration - duration, duration)
 			button.Icon:SetTexture(texture)
 			button.Count:SetText(count > 1 and count or '')
-			button.backdrop:SetBackdropBorderColor(isDebuff and 1 or 0, 0, 0)
+			button:SetBackdropBorderColor(isDebuff and 1 or 0, 0, 0)
 
 			button:SetSize(MA.db.Size, MA.db.Size)
 			button:SetID(index)
-			button:Show()
+			button:SetShown(show)
 
 			return VISIBLE
-		else
-			return HIDDEN
 		end
 	end
+
+	return name and HIDDEN or nil
 end
 
 function MA:SetPosition()
 	if not MA.Holder then return end
 
-	local size, anchor, x, y = MA.db.Size + MA.db.Spacing + 2, 'BOTTOMLEFT', 1, -1
+	local size, anchor, x, y = MA.db.Size + MA.db.Spacing, 'BOTTOMLEFT', 1, -1
 	local cols = floor(MA.Holder:GetWidth() / size + 0.5)
 
 	for i, button in ipairs(MA.Holder) do
@@ -88,11 +87,11 @@ function MA:SetPosition()
 	end
 end
 
-function MA:FilterIcons(unit, filter, limit, isDebuff, offset, dontHide)
+function MA:FilterIcons(unit, filter, limit, isDebuff, offset)
 	if (not offset) then offset = 0 end
 	local index, visible, hidden = 1, 0, 0
 
-	while (visible < limit) do
+	for index = 1, limit do
 		local result = MA:UpdateIcon(unit, index, offset, filter, isDebuff, visible)
 		if (not result) then
 			break
@@ -101,13 +100,12 @@ function MA:FilterIcons(unit, filter, limit, isDebuff, offset, dontHide)
 		elseif (result == HIDDEN) then
 			hidden = hidden + 1
 		end
-
-		index = index + 1
 	end
 
-	if (not dontHide) then
-		for i = visible + offset + 1, #MA.Holder do
-			MA.Holder[i]:Hide()
+	local maxButton = visible + offset + 1
+	for i, button in ipairs(MA.Holder) do
+		if i >= maxButton then
+			button:Hide()
 		end
 	end
 
