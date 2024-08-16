@@ -1,4 +1,4 @@
-## Interface: 11404
+## Interface: 11503
 ## Title: |cFF16C3F2Project|r|cFFFFFFFFAzilroka|r
 ## Author: Azilroka, Nihilistzsche
 ## Version: 1.88
@@ -17,5 +17,5 @@ Cooldowns.lua
 Media\Media.lua
 
 # Modules
-Modules\Load_Classic.xml
+Load_Classic.xml
 Templates.xml
