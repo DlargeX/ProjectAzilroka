@@ -1,9 +1,9 @@
-local PA = _G.ProjectAzilroka
+local PA, ACL, ACH = unpack(_G.ProjectAzilroka)
 local IF = PA:NewModule('iFilger', 'AceEvent-3.0', 'AceTimer-3.0')
 PA.iFilger = IF
 
-IF.Title = PA.ACL['|cFF16C3F2i|r|cFFFFFFFFFilger|r']
-IF.Description = PA.ACL['Minimalistic Auras / Buffs / Procs / Cooldowns']
+IF.Title = ACL['|cFF16C3F2i|r|cFFFFFFFFFilger|r']
+IF.Description = ACL['Minimalistic Auras / Buffs / Procs / Cooldowns']
 IF.Authors = 'Azilroka    Nils Ruesch    Ildyria'
 
 IF.isEnabled = false
@@ -150,7 +150,7 @@ function IF:UpdateActiveCooldowns()
 			button.spellID = SpellID
 			button.spellName = Name
 
-			button.Texture:SetTexture(Icon)
+			button.Icon:SetTexture(Icon)
 			button:SetShown(CurrentDuration and CurrentDuration >= COOLDOWN_MIN_DURATION)
 
 			if (CurrentDuration and CurrentDuration >= COOLDOWN_MIN_DURATION) then
@@ -207,7 +207,7 @@ function IF:UpdateItemCooldowns()
 			button.itemName = Name
 			button.expiration = Start + Duration
 
-			button.Texture:SetTexture(GetItemIcon(itemID))
+			button.Icon:SetTexture(GetItemIcon(itemID))
 			button:SetShown(CurrentDuration and CurrentDuration >= COOLDOWN_MIN_DURATION)
 
 			if (CurrentDuration and CurrentDuration >= COOLDOWN_MIN_DURATION) then
@@ -331,31 +331,17 @@ function IF:CustomFilter(element, unit, button, name, texture, count, debuffType
 end
 
 function IF:UpdateAuraIcon(element, unit, index, offset, filter, isDebuff, visible)
-	local name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod, effect1, effect2, effect3
-
-	if PA.Classic and PA.LCD and not UnitIsUnit('player', unit) then
-		local durationNew, expirationTimeNew
-		name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod, effect1, effect2, effect3 = PA.LCD:UnitAura(unit, index, filter)
-
-		if spellID then
-			durationNew, expirationTimeNew = PA.LCD:GetAuraDurationByUnit(unit, spellID, caster, name)
-		end
-
-		if durationNew and durationNew > 0 then
-			duration, expiration = durationNew, expirationTimeNew
-		end
-	else
-		name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod, effect1, effect2, effect3 = UnitAura(unit, index, filter)
-	end
+	local name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod, effect1, effect2, effect3 = PA:GetAuraData(unit, index, filter)
 
 	if name then
 		local position = visible + offset + 1
 		local button = element[position] or IF:CreateAuraIcon(element, position)
-		local show = IF:CustomFilter(element, unit, button, name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll,timeMod, effect1, effect2, effect3)
+		local show = IF:CustomFilter(element, unit, button, name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod, effect1, effect2, effect3)
 
 		button.caster, button.filter, button.isDebuff, button.expiration, button.duration, button.spellID, button.isPlayer = caster, filter, isDebuff, expiration, duration, spellID, caster == 'player' or caster == 'vehicle'
 
 		button:SetShown(show)
+
 		if show then
 			if not element.db.StatusBar then
 				if (duration and duration >= AURA_MIN_DURATION) then
@@ -365,8 +351,8 @@ function IF:UpdateAuraIcon(element, unit, index, offset, filter, isDebuff, visib
 			end
 
 			button:SetID(index)
-			button.Texture:SetTexture(texture)
-			button.Stacks:SetText(count > 1 and count or "")
+			button.Icon:SetTexture(texture)
+			button.Count:SetText(count > 1 and count or '')
 			button.StatusBar:SetStatusBarColor(unpack(element.db.StatusBarTextureColor))
 			button.StatusBar.Name:SetText(name)
 
@@ -514,32 +500,21 @@ function IF:BAG_UPDATE_COOLDOWN()
 end
 
 function IF:CreateAuraIcon(element)
-	local Frame = CreateFrame('Button', nil, element)
+	local Frame = CreateFrame('Button', nil, element, 'PA_AuraTemplate')
 	Frame:EnableMouse(false)
 	Frame:SetSize(element.db.Size, element.db.Size)
 
-	Frame.Cooldown = CreateFrame('Cooldown', nil, Frame, 'CooldownFrameTemplate')
-	Frame.Cooldown:SetAllPoints()
-	Frame.Cooldown:SetReverse(false)
 	Frame.Cooldown:SetDrawEdge(false)
 	Frame.Cooldown.CooldownOverride = 'iFilger'
 	PA:RegisterCooldown(Frame.Cooldown)
 
-	Frame.Texture = Frame:CreateTexture(nil, 'ARTWORK')
-	PA:SetInside(Frame.Texture)
-	Frame.Texture:SetTexCoord(unpack(PA.TexCoords))
+	Frame.Icon:SetTexCoord(PA:TexCoords())
 
-	local stackFrame = CreateFrame('Frame', nil, Frame)
-	stackFrame:SetAllPoints(Frame)
-	stackFrame:SetFrameLevel(Frame.Cooldown:GetFrameLevel() + 1)
+	Frame.Count:SetFont(PA.Libs.LSM:Fetch('font', element.db.StackCountFont), element.db.StackCountFontSize, element.db.StackCountFontFlag)
+	Frame.Count:SetPoint('BOTTOMRIGHT', Frame, 'BOTTOMRIGHT', 0, 2)
 
-	Frame.Stacks = stackFrame:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
-	Frame.Stacks:SetFont(PA.LSM:Fetch('font', element.db.StackCountFont), element.db.StackCountFontSize, element.db.StackCountFontFlag)
-	Frame.Stacks:SetPoint('BOTTOMRIGHT', Frame, 'BOTTOMRIGHT', 0, 2)
-
-	Frame.StatusBar = CreateFrame('StatusBar', nil, Frame)
 	Frame.StatusBar:SetSize(element.db.StatusBarWidth, element.db.StatusBarHeight)
-	Frame.StatusBar:SetStatusBarTexture(PA.LSM:Fetch('statusbar', element.db.StatusBarTexture))
+	Frame.StatusBar:SetStatusBarTexture(PA.Libs.LSM:Fetch('statusbar', element.db.StatusBarTexture))
 	Frame.StatusBar:SetStatusBarColor(unpack(element.db.StatusBarTextureColor))
 	Frame.StatusBar:SetPoint('BOTTOMLEFT', Frame, 'BOTTOMRIGHT', 2, 0)
 	Frame.StatusBar:SetMinMaxValues(0, 1)
@@ -567,21 +542,18 @@ function IF:CreateAuraIcon(element)
 		end)
 	end
 
-	Frame.StatusBar.Name = Frame.StatusBar:CreateFontString(nil, 'OVERLAY')
-	Frame.StatusBar.Name:SetFont(PA.LSM:Fetch('font', element.db.StatusBarFont), element.db.StatusBarFontSize, element.db.StatusBarFontFlag)
+	Frame.StatusBar.Name:SetFont(PA.Libs.LSM:Fetch('font', element.db.StatusBarFont), element.db.StatusBarFontSize, element.db.StatusBarFontFlag)
 	Frame.StatusBar.Name:SetPoint('BOTTOMLEFT', Frame.StatusBar, element.db.StatusBarNameX, element.db.StatusBarNameY)
-	Frame.StatusBar.Name:SetJustifyH('LEFT')
 
-	Frame.StatusBar.Time = Frame.StatusBar:CreateFontString(nil, 'OVERLAY')
-	Frame.StatusBar.Time:SetFont(PA.LSM:Fetch('font', element.db.StatusBarFont), element.db.StatusBarFontSize, element.db.StatusBarFontFlag)
+	Frame.StatusBar.Time:SetFont(PA.Libs.LSM:Fetch('font', element.db.StatusBarFont), element.db.StatusBarFontSize, element.db.StatusBarFontFlag)
 	Frame.StatusBar.Time:SetPoint('BOTTOMRIGHT', Frame.StatusBar, element.db.StatusBarTimeX, element.db.StatusBarTimeY)
-	Frame.StatusBar.Time:SetJustifyH('RIGHT')
 
 	PA:CreateBackdrop(Frame)
 	PA:CreateShadow(Frame.backdrop)
 	PA:CreateBackdrop(Frame.StatusBar, 'Default')
 	PA:CreateShadow(Frame.StatusBar.backdrop)
 
+	Frame.Count:SetShown(true)
 	Frame.StatusBar:SetShown(element.db.StatusBar)
 	Frame.StatusBar.Name:SetShown(element.db.StatusBarNameEnabled)
 	Frame.StatusBar.Time:SetShown(element.db.StatusBarTimeEnabled)
@@ -606,12 +578,12 @@ function IF:UpdateAll()
 
 		for _, Button in ipairs(Frame) do
 			Button:SetSize(Frame.db.Size, Frame.db.Size)
-			Button.Stacks:SetFont(PA.LSM:Fetch('font', Frame.db.StackCountFont), Frame.db.StackCountFontSize, Frame.db.StackCountFontFlag)
-			Button.StatusBar:SetStatusBarTexture(PA.LSM:Fetch('statusbar', Frame.db.StatusBarTexture))
+			Button.Count:SetFont(PA.Libs.LSM:Fetch('font', Frame.db.StackCountFont), Frame.db.StackCountFontSize, Frame.db.StackCountFontFlag)
+			Button.StatusBar:SetStatusBarTexture(PA.Libs.LSM:Fetch('statusbar', Frame.db.StatusBarTexture))
 			Button.StatusBar:SetStatusBarColor(unpack(Frame.db.StatusBarTextureColor))
 			Button.StatusBar:SetSize(Frame.db.StatusBarWidth, Frame.db.StatusBarHeight)
-			Button.StatusBar.Name:SetFont(PA.LSM:Fetch('font', Frame.db.StatusBarFont), Frame.db.StatusBarFontSize, Frame.db.StatusBarFontFlag)
-			Button.StatusBar.Time:SetFont(PA.LSM:Fetch('font', Frame.db.StatusBarFont), Frame.db.StatusBarFontSize, Frame.db.StatusBarFontFlag)
+			Button.StatusBar.Name:SetFont(PA.Libs.LSM:Fetch('font', Frame.db.StatusBarFont), Frame.db.StatusBarFontSize, Frame.db.StatusBarFontFlag)
+			Button.StatusBar.Time:SetFont(PA.Libs.LSM:Fetch('font', Frame.db.StatusBarFont), Frame.db.StatusBarFontSize, Frame.db.StatusBarFontFlag)
 			Button.StatusBar.Name:SetPoint('BOTTOMLEFT', Button.StatusBar, Frame.db.StatusBarNameX, Frame.db.StatusBarNameY)
 			Button.StatusBar.Time:SetPoint('BOTTOMRIGHT', Button.StatusBar, Frame.db.StatusBarTimeX, Frame.db.StatusBarTimeY)
 			Button.StatusBar:SetShown(Frame.db.StatusBar)
@@ -634,7 +606,7 @@ end
 
 function IF:SPELLS_CHANGED()
 	PA:AddKeysToTable(IF.db.Cooldowns.SpellCDs, PA.SpellBook.Spells)
-	PA.Options.args.iFilger.args.Cooldowns.args.Spells.args = IF:GenerateSpellOptions()
+	PA.Options.args.iFilger.args.Cooldowns.args.Spells.args = PA:GenerateSpellOptions(IF.db.Cooldowns.SpellCDs)
 end
 
 local function GetSelectedSpell()
@@ -693,100 +665,81 @@ function IF:BuildProfile()
 	PA.Defaults.profile.iFilger.Cooldowns.SpellCDs = PA.SpellBook.Spells
 end
 
-function IF:GenerateSpellOptions()
-	local SpellOptions = {}
-
-	for SpellID, SpellName in pairs(IF.db.Cooldowns.SpellCDs) do
-		local Name, _, Icon = GetSpellInfo(SpellID)
-		if Name then
-			SpellOptions[tostring(SpellID)] = {
-				type = 'toggle',
-				image = Icon,
-				imageCoords = PA.TexCoords,
-				name = ' '..(type(SpellName) == 'string' and SpellName or Name),
-				desc = 'Spell ID: '..SpellID,
-			}
-		end
-	end
-
-	return SpellOptions
-end
-
 function IF:GetOptions()
-	local iFilger = PA.ACH:Group(IF.Title, IF.Description, nil, 'tab')
+	local iFilger = ACH:Group(IF.Title, IF.Description, nil, 'tab')
 	PA.Options.args.iFilger = iFilger
 
-	iFilger.args.Description = PA.ACH:Description(IF.Description, 0)
-	iFilger.args.Enable = PA.ACH:Toggle(PA.ACL['Enable'], nil, 1, nil, nil, nil, function(info) return IF.db[info[#info]] end, function(info, value) IF.db[info[#info]] = value if (not IF.isEnabled) then IF:Initialize() else _G.StaticPopup_Show('PROJECTAZILROKA_RL') end end)
+	iFilger.args.Description = ACH:Description(IF.Description, 0)
+	iFilger.args.Enable = ACH:Toggle(ACL['Enable'], nil, 1, nil, nil, nil, function(info) return IF.db[info[#info]] end, function(info, value) IF.db[info[#info]] = value if (not IF.isEnabled) then IF:Initialize() else _G.StaticPopup_Show('PROJECTAZILROKA_RL') end end)
 
-	iFilger.args.AuthorHeader = PA.ACH:Header(PA.ACL['Authors:'], -2)
-	iFilger.args.Authors = PA.ACH:Description(IF.Authors, -1, 'large')
+	iFilger.args.AuthorHeader = ACH:Header(ACL['Authors:'], -2)
+	iFilger.args.Authors = ACH:Description(IF.Authors, -1, 'large')
 
 	for _, Name in ipairs({'Cooldowns','ItemCooldowns','Buffs','Procs','Enhancements','RaidDebuffs','TargetDebuffs','FocusBuffs','FocusDebuffs'}) do
-		iFilger.args[Name] = PA.ACH:Group(Name, nil, nil, nil, function(info) return IF.db[Name][info[#info]] end, function(info, value) IF.db[Name][info[#info]] = value IF:UpdateAll() end)
+		iFilger.args[Name] = ACH:Group(Name, nil, nil, nil, function(info) return IF.db[Name][info[#info]] end, function(info, value) IF.db[Name][info[#info]] = value IF:UpdateAll() end)
 
-		iFilger.args[Name].args.Enable = PA.ACH:Toggle(PA.ACL['Enable'], nil, 0)
-		iFilger.args[Name].args.Size = PA.ACH:Range(PA.ACL['Icon Size'], nil, 1, { min = 16, max = 64, step = 1 })
-		iFilger.args[Name].args.Spacing = PA.ACH:Range(PA.ACL['Spacing'], nil, 2, { min = 0, max = 18, step = 1 })
-		iFilger.args[Name].args.NumPerRow = PA.ACH:Range(PA.ACL['Number Per Row'], nil, 3, { min = 1, max = 24, step = 1 }, nil, nil, nil, nil, function() return IF.db[Name].StatusBar end)
-		iFilger.args[Name].args.Direction = PA.ACH:Select(PA.ACL['Growth Direction'], nil, 4, { LEFT = 'Left', RIGHT = 'Right' }, nil, nil, nil, nil, nil, function() return IF.db[Name].StatusBar end)
-		iFilger.args[Name].args.FilterByList = PA.ACH:Select(PA.ACL['Filter by List'], nil, 5, { None = 'None', Whitelist = 'Whitelist', Blacklist = 'Blacklist' }, nil, nil, nil, nil, nil, Name == 'Cooldowns')
+		iFilger.args[Name].args.Enable = ACH:Toggle(ACL['Enable'], nil, 0)
+		iFilger.args[Name].args.Size = ACH:Range(ACL['Icon Size'], nil, 1, { min = 16, max = 64, step = 1 })
+		iFilger.args[Name].args.Spacing = ACH:Range(ACL['Spacing'], nil, 2, { min = 0, max = 18, step = 1 })
+		iFilger.args[Name].args.NumPerRow = ACH:Range(ACL['Number Per Row'], nil, 3, { min = 1, max = 24, step = 1 }, nil, nil, nil, nil, function() return IF.db[Name].StatusBar end)
+		iFilger.args[Name].args.Direction = ACH:Select(ACL['Growth Direction'], nil, 4, { LEFT = 'Left', RIGHT = 'Right' }, nil, nil, nil, nil, nil, function() return IF.db[Name].StatusBar end)
+		iFilger.args[Name].args.FilterByList = ACH:Select(ACL['Filter by List'], nil, 5, { None = 'None', Whitelist = 'Whitelist', Blacklist = 'Blacklist' }, nil, nil, nil, nil, nil, Name == 'Cooldowns')
 
-		iFilger.args[Name].args.IconStack = PA.ACH:Group(PA.ACL['Stack Count'], nil, 10)
+		iFilger.args[Name].args.IconStack = ACH:Group(ACL['Stack Count'], nil, 10)
 		iFilger.args[Name].args.IconStack.inline = true
-		iFilger.args[Name].args.IconStack.args.StackCountFont = PA.ACH:SharedMediaFont(PA.ACL['Font'], nil, 1)
-		iFilger.args[Name].args.IconStack.args.StackCountFontSize = PA.ACH:Range(PA.ACL['Font Size'], nil, 2, { min = 8, max = 18, step = 1 })
-		iFilger.args[Name].args.IconStack.args.StackCountFontFlag = PA.ACH:FontFlags(PA.ACL['Font Flag'], nil, 3)
+		iFilger.args[Name].args.IconStack.args.StackCountFont = ACH:SharedMediaFont(ACL['Font'], nil, 1)
+		iFilger.args[Name].args.IconStack.args.StackCountFontSize = ACH:Range(ACL['Font Size'], nil, 2, { min = 8, max = 18, step = 1 })
+		iFilger.args[Name].args.IconStack.args.StackCountFontFlag = ACH:FontFlags(ACL['Font Flag'], nil, 3)
 
-		iFilger.args[Name].args.StatusBarGroup = PA.ACH:Group(PA.ACL['StatusBar'], nil, 11, nil, nil, nil, function() return not IF.db[Name].StatusBar end)
+		iFilger.args[Name].args.StatusBarGroup = ACH:Group(ACL['StatusBar'], nil, 11, nil, nil, nil, function() return not IF.db[Name].StatusBar end)
 		iFilger.args[Name].args.StatusBarGroup.inline = true
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBar = PA.ACH:Toggle(PA.ACL['Enable'], nil, 0, nil, nil, nil, nil, nil, false)
-		iFilger.args[Name].args.StatusBarGroup.args.FollowCooldownText = PA.ACH:Toggle(PA.ACL['Follow Cooldown Text Color'], PA.ACL['Follow Cooldown Text Colors (Expiring / Seconds)'], 1)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarWidth = PA.ACH:Range(PA.ACL['Width'], nil, 3, { min = 1, max = 256, step = 1 })
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarHeight = PA.ACH:Range(PA.ACL['Height'], nil, 4, { min = 1, max = 64, step = 1 })
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTexture = PA.ACH:SharedMediaStatusbar(PA.ACL['Texture'], nil, 5)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTextureColor = PA.ACH:Color(PA.ACL['Texture Color'], nil, 6, nil, nil, function(info) return unpack(IF.db[Name][info[#info]]) end, function(info, r, g, b, a) IF.db[Name][info[#info]] = { r, g, b, a} end)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarFont = PA.ACH:SharedMediaFont(PA.ACL['Font'], nil, 7)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarFontSize = PA.ACH:Range(PA.ACL['Font Size'], nil, 8, { min = 8, max = 18, step = 1 })
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarFontFlag = PA.ACH:FontFlags(PA.ACL['Font Flag'], nil, 9)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarDirection = PA.ACH:Select(PA.ACL['Growth Direction'], nil, 10, { UP = 'Up', DOWN = 'Down' })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBar = ACH:Toggle(ACL['Enable'], nil, 0, nil, nil, nil, nil, nil, false)
+		iFilger.args[Name].args.StatusBarGroup.args.FollowCooldownText = ACH:Toggle(ACL['Follow Cooldown Text Color'], ACL['Follow Cooldown Text Colors (Expiring / Seconds)'], 1)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarWidth = ACH:Range(ACL['Width'], nil, 3, { min = 1, max = 256, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarHeight = ACH:Range(ACL['Height'], nil, 4, { min = 1, max = 64, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTexture = ACH:SharedMediaStatusbar(ACL['Texture'], nil, 5)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTextureColor = ACH:Color(ACL['Texture Color'], nil, 6, nil, nil, function(info) return unpack(IF.db[Name][info[#info]]) end, function(info, r, g, b, a) IF.db[Name][info[#info]] = { r, g, b, a} end)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarFont = ACH:SharedMediaFont(ACL['Font'], nil, 7)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarFontSize = ACH:Range(ACL['Font Size'], nil, 8, { min = 8, max = 18, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarFontFlag = ACH:FontFlags(ACL['Font Flag'], nil, 9)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarDirection = ACH:Select(ACL['Growth Direction'], nil, 10, { UP = 'Up', DOWN = 'Down' })
 
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName = PA.ACH:Group(PA.ACL['Name'], nil, 11)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName = ACH:Group(ACL['Name'], nil, 11)
 		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.inline = true
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.args.StatusBarNameEnabled = PA.ACH:Toggle(PA.ACL['Enable'], nil, 0)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.args.StatusBarNameX = PA.ACH:Range(PA.ACL['X Offset'], nil, 1, { min = -256, max = 256, step = 1 })
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.args.StatusBarNameY = PA.ACH:Range(PA.ACL['Y Offset'], nil, 2, { min = -64, max = 64, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.args.StatusBarNameEnabled = ACH:Toggle(ACL['Enable'], nil, 0)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.args.StatusBarNameX = ACH:Range(ACL['X Offset'], nil, 1, { min = -256, max = 256, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarName.args.StatusBarNameY = ACH:Range(ACL['Y Offset'], nil, 2, { min = -64, max = 64, step = 1 })
 
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime = PA.ACH:Group(PA.ACL['Name'], nil, 12)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime = ACH:Group(ACL['Name'], nil, 12)
 		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.inline = true
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.args.StatusBarTimeEnabled = PA.ACH:Toggle(PA.ACL['Enable'], nil, 0)
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.args.StatusBarTimeX = PA.ACH:Range(PA.ACL['X Offset'], nil, 1, { min = -256, max = 256, step = 1 })
-		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.args.StatusBarTimeY = PA.ACH:Range(PA.ACL['Y Offset'], nil, 2, { min = -64, max = 64, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.args.StatusBarTimeEnabled = ACH:Toggle(ACL['Enable'], nil, 0)
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.args.StatusBarTimeX = ACH:Range(ACL['X Offset'], nil, 1, { min = -256, max = 256, step = 1 })
+		iFilger.args[Name].args.StatusBarGroup.args.StatusBarTime.args.StatusBarTimeY = ACH:Range(ACL['Y Offset'], nil, 2, { min = -64, max = 64, step = 1 })
 
-		iFilger.args[Name].args.filterGroup = PA.ACH:Group(PA.ACL['Filters'], nil, 12, nil, nil, nil, nil, Name == 'Cooldowns')
+		iFilger.args[Name].args.filterGroup = ACH:Group(ACL['Filters'], nil, 12, nil, nil, nil, nil, Name == 'Cooldowns')
 		iFilger.args[Name].args.filterGroup.inline = true
-		iFilger.args[Name].args.filterGroup.args.selectFilter = PA.ACH:Select(PA.ACL['Select Filter'], nil, 1, { Whitelist = 'Whitelist', Blacklist = 'Blacklist' }, nil, nil, function() return selectedFilter end, function(_, value) selectedFilter, selectedSpell = nil, nil if value ~= '' then selectedFilter = value end end)
-		iFilger.args[Name].args.filterGroup.args.resetFilter = PA.ACH:Execute(PA.ACL["Reset Filter"], PA.ACL["This will reset the contents of this filter back to default. Any spell you have added to this filter will be removed."], 2, function() wipe(IF.db[Name][selectedFilter]) selectedSpell = nil end, nil, true)
+		iFilger.args[Name].args.filterGroup.args.selectFilter = ACH:Select(ACL['Select Filter'], nil, 1, { Whitelist = 'Whitelist', Blacklist = 'Blacklist' }, nil, nil, function() return selectedFilter end, function(_, value) selectedFilter, selectedSpell = nil, nil if value ~= '' then selectedFilter = value end end)
+		iFilger.args[Name].args.filterGroup.args.resetFilter = ACH:Execute(ACL["Reset Filter"], ACL["This will reset the contents of this filter back to default. Any spell you have added to this filter will be removed."], 2, function() wipe(IF.db[Name][selectedFilter]) selectedSpell = nil end, nil, true)
 
-		iFilger.args[Name].args.filterGroup.args.filterGroup = PA.ACH:Group(function() return selectedFilter end, nil, 10, nil, nil, nil, nil, function() return not selectedFilter end)
+		iFilger.args[Name].args.filterGroup.args.filterGroup = ACH:Group(function() return selectedFilter end, nil, 10, nil, nil, nil, nil, function() return not selectedFilter end)
 		iFilger.args[Name].args.filterGroup.args.filterGroup.inline = true
-		iFilger.args[Name].args.filterGroup.args.filterGroup.args.addSpell = PA.ACH:Input(PA.ACL['Add SpellID'], PA.ACL['Add a spell to the filter.'], 1, nil, nil, function() return '' end, function(_, value) value = tonumber(value) if not value then return end local spellName = GetSpellInfo(value) selectedSpell = (spellName and value) or nil if not selectedSpell then return end IF.db[Name][selectedFilter][value] = true end)
-		iFilger.args[Name].args.filterGroup.args.filterGroup.args.removeSpell = PA.ACH:Execute(PA.ACL["Remove Spell"], PA.ACL["Remove a spell from the filter. Use the spell ID if you see the ID as part of the spell name in the filter."], 2, function() local value = GetSelectedSpell() if not value then return end selectedSpell = nil IF.db[Name][selectedFilter][value] = nil end, nil, true)
-		iFilger.args[Name].args.filterGroup.args.filterGroup.args.selectSpell = PA.ACH:Select(PA.ACL["Select Spell"], nil, 10, function() local list = IF.db[Name][selectedFilter] if not list then return end wipe(spellList) for filter in pairs(list) do local spellName = tonumber(filter) and GetSpellInfo(filter) local name = (spellName and format("%s |cFF888888(%s)|r", spellName, filter)) or tostring(filter) spellList[filter] = name end if not next(spellList) then spellList[''] = PA.ACL["None"] end return spellList end, nil, 'double', function() if not IF.db[Name][selectedFilter][selectedSpell] then selectedSpell = nil end return selectedSpell or '' end, function(_, value) selectedSpell = (value ~= '' and value) or nil end)
-		iFilger.args[Name].args.filterGroup.args.spellGroup = PA.ACH:Group(function() local spell = GetSelectedSpell() local spellName = spell and GetSpellInfo(spell) return (spellName and spellName..' |cFF888888('..spell..')|r') or spell or ' ' end, nil, -15, nil, nil, nil, nil, function() return not GetSelectedSpell() end)
+		iFilger.args[Name].args.filterGroup.args.filterGroup.args.addSpell = ACH:Input(ACL['Add SpellID'], ACL['Add a spell to the filter.'], 1, nil, nil, function() return '' end, function(_, value) value = tonumber(value) if not value then return end local spellName = GetSpellInfo(value) selectedSpell = (spellName and value) or nil if not selectedSpell then return end IF.db[Name][selectedFilter][value] = true end)
+		iFilger.args[Name].args.filterGroup.args.filterGroup.args.removeSpell = ACH:Execute(ACL["Remove Spell"], ACL["Remove a spell from the filter. Use the spell ID if you see the ID as part of the spell name in the filter."], 2, function() local value = GetSelectedSpell() if not value then return end selectedSpell = nil IF.db[Name][selectedFilter][value] = nil end, nil, true)
+		iFilger.args[Name].args.filterGroup.args.filterGroup.args.selectSpell = ACH:Select(ACL["Select Spell"], nil, 10, function() local list = IF.db[Name][selectedFilter] if not list then return end wipe(spellList) for filter in pairs(list) do local spellName = tonumber(filter) and GetSpellInfo(filter) local name = (spellName and format("%s |cFF888888(%s)|r", spellName, filter)) or tostring(filter) spellList[filter] = name end if not next(spellList) then spellList[''] = ACL["None"] end return spellList end, nil, 'double', function() if not IF.db[Name][selectedFilter][selectedSpell] then selectedSpell = nil end return selectedSpell or '' end, function(_, value) selectedSpell = (value ~= '' and value) or nil end)
+		iFilger.args[Name].args.filterGroup.args.spellGroup = ACH:Group(function() local spell = GetSelectedSpell() local spellName = spell and GetSpellInfo(spell) return (spellName and spellName..' |cFF888888('..spell..')|r') or spell or ' ' end, nil, -15, nil, nil, nil, nil, function() return not GetSelectedSpell() end)
 		iFilger.args[Name].args.filterGroup.args.spellGroup.inline = true
-		iFilger.args[Name].args.filterGroup.args.spellGroup.args.enabled = PA.ACH:Toggle(PA.ACL['Enable'], nil, 0, nil, nil, nil, function() local spell = GetSelectedSpell() if not spell then return end return IF.db[Name][selectedFilter][spell] end, function(_, value) local spell = GetSelectedSpell() if not spell then return end IF.db[Name][selectedFilter][spell] = value end)
+		iFilger.args[Name].args.filterGroup.args.spellGroup.args.enabled = ACH:Toggle(ACL['Enable'], nil, 0, nil, nil, nil, function() local spell = GetSelectedSpell() if not spell then return end return IF.db[Name][selectedFilter][spell] end, function(_, value) local spell = GetSelectedSpell() if not spell then return end IF.db[Name][selectedFilter][spell] = value end)
 	end
 
-	iFilger.args.Cooldowns.args.UpdateSpeed = PA.ACH:Range(PA.ACL['Update Speed'], nil, 5, { min = .1, max = .5, step = .1 })
-	iFilger.args.ItemCooldowns.args.UpdateSpeed = PA.ACH:Range(PA.ACL['Update Speed'], nil, 5, { min = .1, max = .5, step = .1 })
+	iFilger.args.Cooldowns.args.UpdateSpeed = ACH:Range(ACL['Update Speed'], nil, 5, { min = .1, max = .5, step = .1 })
+	iFilger.args.ItemCooldowns.args.UpdateSpeed = ACH:Range(ACL['Update Speed'], nil, 5, { min = .1, max = .5, step = .1 })
 
-	iFilger.args.Cooldowns.args.SuppressDuration = PA.ACH:Range(PA.ACL['Suppress Duration Threshold'], PA.ACL['Duration in Seconds'], 6, { min = 2, max = 600, step = 1 })
-	iFilger.args.Cooldowns.args.IgnoreDuration = PA.ACH:Range(PA.ACL['Ignore Duration Threshold'], PA.ACL['Duration in Seconds'], 7, { min = 2, max = 600, step = 1 })
+	iFilger.args.Cooldowns.args.SuppressDuration = ACH:Range(ACL['Suppress Duration Threshold'], ACL['Duration in Seconds'], 6, { min = 2, max = 600, step = 1 })
+	iFilger.args.Cooldowns.args.IgnoreDuration = ACH:Range(ACL['Ignore Duration Threshold'], ACL['Duration in Seconds'], 7, { min = 2, max = 600, step = 1 })
 
-	iFilger.args.Cooldowns.args.Spells = PA.ACH:Group(_G.SPELLS, nil, 12, nil, function(info) return IF.db.Cooldowns.SpellCDs[tonumber(info[#info])] end, function(info, value) IF.db.Cooldowns.SpellCDs[tonumber(info[#info])] = value end)
+	iFilger.args.Cooldowns.args.Spells = ACH:Group(_G.SPELLS, nil, 12, nil, function(info) return IF.db.Cooldowns.SpellCDs[tonumber(info[#info])] end, function(info, value) IF.db.Cooldowns.SpellCDs[tonumber(info[#info])] = value end)
 	iFilger.args.Cooldowns.args.Spells.inline = true
-	iFilger.args.Cooldowns.args.Spells.args = IF:GenerateSpellOptions()
+	iFilger.args.Cooldowns.args.Spells.args = PA:GenerateSpellOptions(IF.db.Cooldowns.SpellCDs)
 end
 
 function IF:UpdateSettings()

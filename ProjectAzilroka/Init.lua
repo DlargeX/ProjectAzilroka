@@ -1,10 +1,10 @@
-local AddOnName = ...
-local _G = _G
+local AddOnName, Engine = ...
+local _G, _ = _G
 local LibStub = _G.LibStub
 
 local PA = LibStub('AceAddon-3.0'):NewAddon('ProjectAzilroka', 'AceConsole-3.0', 'AceEvent-3.0', 'AceTimer-3.0')
 
-_G.ProjectAzilroka = PA
+_G.ProjectAzilroka = Engine
 
 local min, max = min, max
 local select = select
@@ -24,47 +24,53 @@ local GetRealmName = GetRealmName
 local UIParent = UIParent
 local CreateFrame = CreateFrame
 
--- Ace Libraries
-PA.AC = LibStub('AceConfig-3.0')
-PA.GUI = LibStub('AceGUI-3.0')
-PA.ACR = LibStub('AceConfigRegistry-3.0')
-PA.ACD = LibStub('AceConfigDialog-3.0')
-PA.ACL = LibStub('AceLocale-3.0'):GetLocale(AddOnName, false)
-PA.ADB = LibStub('AceDB-3.0')
+PA.Libs = {
+	-- Ace Libraries
+	AC = LibStub('AceConfig-3.0'),
+	GUI = LibStub('AceGUI-3.0'),
+	ACR = LibStub('AceConfigRegistry-3.0'),
+	ACD = LibStub('AceConfigDialog-3.0'),
+	ACL = LibStub('AceLocale-3.0'):GetLocale(AddOnName, false),
+	ADB = LibStub('AceDB-3.0'),
 
--- Extra Libraries
-PA.LSM = LibStub('LibSharedMedia-3.0')
-PA.LDB = LibStub('LibDataBroker-1.1')
-PA.LCG = LibStub("LibCustomGlow-1.0")
-PA.LAB = LibStub('LibActionButton-1.0')
-PA.ACH = LibStub('LibAceConfigHelper')
+	-- Extra Libraries
+	LSM = LibStub('LibSharedMedia-3.0'),
+	LDB = LibStub('LibDataBroker-1.1'),
+	LCG = LibStub("LibCustomGlow-1.0"),
+	LAB = LibStub('LibActionButton-1.0'),
+	ACH = LibStub('LibAceConfigHelper'),
 
--- External Libraries
-PA.Masque = LibStub("Masque", true)
-PA.LCD = LibStub("LibClassicDurations", true)
+	-- External Libraries
+	Masque = LibStub("Masque", true),
+	LCD = LibStub("LibClassicDurations", true),
+}
 
-if PA.LCD then
-	PA.LCD:Register(AddOnName) 	-- Register LibClassicDurations
+Engine[1] = PA
+Engine[2] = PA.Libs.ACL
+Engine[3] = PA.Libs.ACH
+
+if PA.Libs.LCD then
+	PA.Libs.LCD:Register(AddOnName) 	-- Register LibClassicDurations
 end
 
 -- WoW Data
-PA.MyClass = select(2, UnitClass('player'))
+_, PA.MyClass = UnitClass('player')
 PA.MyName = UnitName('player')
-PA.MyRace = select(2, UnitRace("player"))
+_, PA.MyRace = UnitRace("player")
 PA.MyRealm = GetRealmName()
 PA.Locale = GetLocale()
 PA.Noop = function() end
-PA.TexCoords = {.08, .92, .08, .92}
 
-if _G.ElvUI then
-	PA.TexCoords = {0, 1, 0, 1}
-	local modifier = 0.04 * _G.ElvUI[1].db.general.cropIcon
-	for i, v in ipairs(PA.TexCoords) do
-		if i % 2 == 0 then
-			PA.TexCoords[i] = v - modifier
-		else
-			PA.TexCoords[i] = v + modifier
+do
+	local modifier, left, right, top, bottom
+
+	function PA:TexCoords(pack)
+		if not modifier then
+			modifier = .04 * (ElvUI and _G.ElvUI[1].db.general.cropIcon or 2)
+			left, right, top, bottom = modifier, 1 - modifier, modifier, 1 - modifier
 		end
+		if pack then return { left, right, top, bottom } end
+		return left, right, top, bottom
 	end
 end
 
@@ -79,7 +85,7 @@ PA.Wrath = _G.WOW_PROJECT_ID == _G.WOW_PROJECT_WRATH_CLASSIC
 -- Pixel Perfect
 PA.ScreenWidth, PA.ScreenHeight = GetPhysicalScreenSize()
 PA.Multiple = 1
-PA.Solid = PA.LSM:Fetch('background', 'Solid')
+PA.Solid = PA.Libs.LSM:Fetch('background', 'Solid')
 
 -- Project Data
 function PA:IsAddOnEnabled(addon, character)
@@ -104,14 +110,14 @@ PA.Authors = GetAddOnMetadata('ProjectAzilroka', 'Author'):gsub(', ', '    ')
 
 PA.AllPoints = { CENTER = 'CENTER', BOTTOM = 'BOTTOM', TOP = 'TOP', LEFT = 'LEFT', RIGHT = 'RIGHT', BOTTOMLEFT = 'BOTTOMLEFT', BOTTOMRIGHT = 'BOTTOMRIGHT', TOPLEFT = 'TOPLEFT', TOPRIGHT = 'TOPRIGHT' }
 PA.GrowthDirection = {
-	DOWN_RIGHT = format(PA.ACL["%s and then %s"], PA.ACL["Down"], PA.ACL["Right"]),
-	DOWN_LEFT = format(PA.ACL["%s and then %s"], PA.ACL["Down"], PA.ACL["Left"]),
-	UP_RIGHT = format(PA.ACL["%s and then %s"], PA.ACL["Up"], PA.ACL["Right"]),
-	UP_LEFT = format(PA.ACL["%s and then %s"], PA.ACL["Up"], PA.ACL["Left"]),
-	RIGHT_DOWN = format(PA.ACL["%s and then %s"], PA.ACL["Right"], PA.ACL["Down"]),
-	RIGHT_UP = format(PA.ACL["%s and then %s"], PA.ACL["Right"], PA.ACL["Up"]),
-	LEFT_DOWN = format(PA.ACL["%s and then %s"], PA.ACL["Left"], PA.ACL["Down"]),
-	LEFT_UP = format(PA.ACL["%s and then %s"], PA.ACL["Left"], PA.ACL["Up"]),
+	DOWN_RIGHT = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Down"], PA.Libs.ACL["Right"]),
+	DOWN_LEFT = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Down"], PA.Libs.ACL["Left"]),
+	UP_RIGHT = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Up"], PA.Libs.ACL["Right"]),
+	UP_LEFT = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Up"], PA.Libs.ACL["Left"]),
+	RIGHT_DOWN = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Right"], PA.Libs.ACL["Down"]),
+	RIGHT_UP = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Right"], PA.Libs.ACL["Up"]),
+	LEFT_DOWN = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Left"], PA.Libs.ACL["Down"]),
+	LEFT_UP = format(PA.Libs.ACL["%s and then %s"], PA.Libs.ACL["Left"], PA.Libs.ACL["Up"]),
 }
 
 PA.ElvUI = PA:IsAddOnEnabled('ElvUI', PA.MyName)
@@ -212,15 +218,15 @@ function PA:ConflictAddOn(AddOns)
 	return false
 end
 
-function PA:CountTable(T)
+function PA:CountTable(t)
 	local n = 0
-	for _ in pairs(T) do n = n + 1 end
+	for _ in next, t do n = n + 1 end
 	return n
 end
 
 function PA:PairsByKeys(t, f)
 	local a = {}
-	for n in pairs(t) do tinsert(a, n) end
+	for n in next, t do tinsert(a, n) end
 	sort(a, f)
 	local i = 0
 	local iter = function()
@@ -327,11 +333,15 @@ do
 	local UnitAura = UnitAura
 
 	function PA:GetAuraData(unitToken, index, filter)
-		if PA.Retail then
-			return UnpackAuraData(GetAuraDataByIndex(unitToken, index, filter))
-		else
-			return UnitAura(unitToken, index, filter)
+		if PA.Classic and PA.Libs.LCD and not UnitIsUnit('player', unitToken) then
+			local name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod = PA.Libs.LCD:UnitAura(unitToken, index, filter)
+			local durationNew, expirationTimeNew
+			if spellID then durationNew, expirationTimeNew = PA.Libs.LCD:GetAuraDurationByUnit(unit, spellID, caster, name) end
+			if durationNew and durationNew > 0 then duration, expiration = durationNew, expirationTimeNew end
+			return name, texture, count, debuffType, duration, expiration, caster, isStealable, nameplateShowSelf, spellID, canApply, isBossDebuff, casterIsPlayer, nameplateShowAll, timeMod
 		end
+
+		return UnpackAuraData(GetAuraDataByIndex(unitToken, index, filter))
 	end
 
 	-- GetMouseFocus
@@ -477,37 +487,48 @@ do
 		PA.ScanTooltip:Hide()
 	end
 
-	local isScanning = false
-
-	local function resetScan()
-		isScanning = false
+	local SpellOptions = {}
+	function PA:GenerateSpellOptions(db)
+		for SpellID, SpellName in next, db do
+			local spellData = PA.SpellBook.Complete[SpellID]
+			local tblID = tostring(SpellID)
+	
+			if spellData.name and not SpellOptions[tblID] then
+				SpellOptions[tblID] = {
+					type = 'toggle',
+					image = spellData.iconID,
+					imageCoords = PA:TexCoords(true),
+					name = ' '..spellData.name,
+					desc = 'Spell ID: '..SpellID,
+				}
+			end
+		end
+	
+		return SpellOptions
 	end
+	
+	function PA:ScanSpellBook(event)
+		for tab = 1, GetNumSpellBookSkillLines() do
+			local info = GetSpellBookSkillLineInfo(tab)
+			ScanSpellBook(BOOKTYPE_SPELL, info.numSpellBookItems, info.itemIndexOffset)
+		end
 
-	function PA:ScanSpellBook()
-		if not isScanning then -- prevent duplicate fires
-			isScanning = true
-			for tab = 1, GetNumSpellBookSkillLines() do
-				local info = GetSpellBookSkillLineInfo(tab)
-				ScanSpellBook(BOOKTYPE_SPELL, info.numSpellBookItems, info.itemIndexOffset)
-			end
+		local numPetSpells = HasPetSpells()
+		if numPetSpells then
+			ScanSpellBook(BOOKTYPE_PET, numPetSpells)
+		end
 
-			local numPetSpells = HasPetSpells()
-			if numPetSpells then
-				ScanSpellBook(BOOKTYPE_PET, numPetSpells)
-			end
-
+		if event then
 			-- Process Modules Event
 			for _, module in PA:IterateModules() do
-				if module.SPELLS_CHANGED then PA:ProtectedCall(module, module.SPELLS_CHANGED) end
+				if module.isEnabled and module.SPELLS_CHANGED then PA:ProtectedCall(module, module.SPELLS_CHANGED) end
 			end
-
-			PA:ScheduleTimer(resetScan, 1)
 		end
 	end
 end
 
 _G.StaticPopupDialogs["PROJECTAZILROKA"] = {
-	text = PA.ACL["A setting you have changed will change an option for this character only. This setting that you have changed will be uneffected by changing user profiles. Changing this setting requires that you reload your User Interface."],
+	text = PA.Libs.ACL["A setting you have changed will change an option for this character only. This setting that you have changed will be uneffected by changing user profiles. Changing this setting requires that you reload your User Interface."],
 	button1 = _G.ACCEPT,
 	button2 = _G.CANCEL,
 	OnAccept = _G.ReloadUI,
@@ -517,7 +538,7 @@ _G.StaticPopupDialogs["PROJECTAZILROKA"] = {
 }
 
 _G.StaticPopupDialogs["PROJECTAZILROKA_RL"] = {
-	text = PA.ACL["This setting requires that you reload your User Interface."],
+	text = PA.Libs.ACL["This setting requires that you reload your User Interface."],
 	button1 = _G.ACCEPT,
 	button2 = _G.CANCEL,
 	OnAccept = _G.ReloadUI,
@@ -562,14 +583,14 @@ PA.Defaults = {
 	}
 }
 
-PA.Options = PA.ACH:Group(PA:Color(PA.Title), nil, 6)
+PA.Options = PA.Libs.ACH:Group(PA:Color(PA.Title), nil, 6)
 
 function PA:GetOptions()
 	if _G.ElvUI then _G.ElvUI[1].Options.args.ProjectAzilroka = PA.Options end
 end
 
 function PA:BuildProfile()
-	PA.data = PA.ADB:New('ProjectAzilrokaDB', PA.Defaults, true)
+	PA.data = PA.Libs.ADB:New('ProjectAzilrokaDB', PA.Defaults, true)
 
 	PA.data.RegisterCallback(PA, 'OnProfileChanged', 'SetupProfile')
 	PA.data.RegisterCallback(PA, 'OnProfileCopied', 'SetupProfile')
@@ -599,8 +620,7 @@ function PA:PLAYER_LOGIN()
 	PA.Multiple = PA:GetUIScale()
 
 	PA.AS = _G.AddOnSkins and _G.AddOnSkins[1]
-	PA.EP = LibStub('LibElvUIPlugin-1.0', true)
-	PA.Options.childGroups = PA.EC and 'tab' or 'tree'
+	PA.Libs.EP = LibStub('LibElvUIPlugin-1.0', true)
 
 	PA:ProtectedCall(PA, PA.ScanSpellBook)
 
@@ -610,11 +630,11 @@ function PA:PLAYER_LOGIN()
 
 	PA:BuildProfile()
 
-	if PA.EP then
-		PA.EP:RegisterPlugin('ProjectAzilroka', PA.GetOptions)
+	if PA.Libs.EP then
+		PA.Libs.EP:RegisterPlugin('ProjectAzilroka', PA.GetOptions)
 	else
-		PA.AC:RegisterOptionsTable('ProjectAzilroka', PA.Options)
-		PA.ACD:AddToBlizOptions('ProjectAzilroka', 'ProjectAzilroka')
+		PA.Libs.AC:RegisterOptionsTable('ProjectAzilroka', PA.Options)
+		PA.Libs.ACD:AddToBlizOptions('ProjectAzilroka', 'ProjectAzilroka')
 	end
 
 	PA:UpdateCooldownSettings('all')
@@ -624,7 +644,12 @@ function PA:PLAYER_LOGIN()
 		if module.Initialize then PA:ProtectedCall(module, module.Initialize) end
 	end
 
-	PA:RegisterEvent('SPELLS_CHANGED', 'ScanSpellBook')
+	if PA.Retail then
+		PA:RegisterEvent('PLAYER_SPECIALIZATION_CHANGED', 'ScanSpellBook')
+		PA:RegisterEvent('TRAIT_CONFIG_UPDATED', 'ScanSpellBook')
+	else
+		PA:RegisterEvent('SPELLS_CHANGED', 'ScanSpellBook')
+	end
 end
 
 PA:RegisterEvent('PLAYER_LOGIN')
