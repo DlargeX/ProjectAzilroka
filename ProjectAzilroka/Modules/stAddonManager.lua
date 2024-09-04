@@ -2,8 +2,7 @@ local PA, ACL, ACH = unpack(_G.ProjectAzilroka)
 local stAM = PA:NewModule('stAddonManager', 'AceEvent-3.0')
 PA.stAM, _G.stAddonManager = stAM, stAM
 
-stAddonManagerProfilesDB = {}
-stAddonManagerServerDB = {}
+stAddonManagerProfilesDB, stAddonManagerServerDB = {}, {}
 
 stAM.Title, stAM.Description, stAM.Authors, stAM.isEnabled = 'stAddonManager', ACL['A simple and minimalistic addon to disable/enabled addons without logging out.'], 'Azilroka    Safturento', false
 
@@ -21,6 +20,7 @@ local EnableAddOn = C_AddOns.EnableAddOn
 local GetAddOnMetadata = C_AddOns.GetAddOnMetadata
 local DisableAllAddOns = C_AddOns.DisableAllAddOns
 local EnableAllAddOns = C_AddOns.EnableAllAddOns
+local SaveAddOns = C_AddOns.SaveAddOns
 
 local UIParent, CreateFrame, GameTooltip = UIParent, CreateFrame, GameTooltip
 
@@ -87,6 +87,7 @@ function stAMCheckButtonMixin:OnClick()
 			end
 		end
 		stAM:UpdateAddonList()
+		SaveAddOns()
 	end
 end
 
@@ -145,7 +146,7 @@ function stAM:BuildFrame()
 	local Title = Frame:CreateFontString(nil, 'OVERLAY')
 
 	-- Defines
-	local font, fontSize, fontFlag = PA.Libs.LSM:Fetch('font', stAM.db.Font), stAM.db.FontSize, stAM.db.FontFlag
+	local font, fontSize, fontFlag = PA:GetFont(stAM.db.Font, stAM.db.FontSize, stAM.db.FontFlag)
 	local Texture = PA.Libs.LSM:Fetch('statusbar', stAM.db.CheckTexture)
 	local FrameWidth = stAM.db.FrameWidth
 	local NumAddOns = stAM.db.NumAddOns
@@ -637,7 +638,7 @@ function stAM:Update()
 	stAM.Frame.AddOns:SetHeight(stAM.db.NumAddOns * (stAM.db.ButtonHeight + 5) + 15)
 	stAM.Frame.AddOns.ScrollBar:SetHeight(stAM.db.NumAddOns * (stAM.db.ButtonHeight + 5) + 11)
 
-	local font, fontSize, fontFlag = PA.Libs.LSM:Fetch('font', stAM.db.Font), stAM.db.FontSize, stAM.db.FontFlag
+	local font, fontSize, fontFlag = PA:GetFont(stAM.db.Font, stAM.db.FontSize, stAM.db.FontFlag)
 	local checkTexture = PA.Libs.LSM:Fetch('statusbar', stAM.db.CheckTexture)
 	local r, g, b, a = unpack(stAM.db.ClassColor and PA.ClassColor or stAM.db.CheckColor)
 	local iconSize = stAM.db.ButtonHeight
