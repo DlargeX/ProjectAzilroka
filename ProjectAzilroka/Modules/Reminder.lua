@@ -7,10 +7,10 @@ AR.Title, AR.Description, AR.Authors, AR.isEnabled = 'Aura Reminder', ACL['Remin
 local _G = _G
 local next, tonumber, tostring, select, format, strmatch, tinsert, wipe = next, tonumber, tostring, select, format, strmatch, tinsert, wipe
 
-local GetSpellCooldown = GetSpellCooldown
-local GetSpellInfo = GetSpellInfo
+local GetSpellCooldown = PA.GetSpellCooldown
+local GetSpellInfo = PA.GetSpellInfo
 local IsSpellKnownOrOverridesKnown = IsSpellKnownOrOverridesKnown
-local IsUsableSpell = IsUsableSpell
+local IsUsableSpell = C_Spell.IsSpellUsable
 local IsInInstance = IsInInstance
 local UnitAffectingCombat = UnitAffectingCombat
 local UnitIsDeadOrGhost = UnitIsDeadOrGhost
@@ -54,8 +54,8 @@ function AR:FindPlayerAura(db, checkPersonal, filter)
 end
 
 function AR:IsSpellOnCooldown(id)
-	local start, duration = GetSpellCooldown(id)
-	if start > 0 and duration > 1.5 then
+	local cooldownInfo = GetSpellCooldown(id)
+	if coolInfo.startTime > 0 and cooldownInfo.duration > 1.5 then
 		return true
 	end
 end
