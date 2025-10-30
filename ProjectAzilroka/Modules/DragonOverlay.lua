@@ -127,14 +127,14 @@ function DO:BuildProfile()
 		FlipDragon = false,
 		ClassIconPoints = {
 			point = 'CENTER',
-			relativeTo = PA.Tukui and 'oUF_TukuiTarget' or PA.ElvUI and 'ElvUF_Target' or PA.NUI and 'NihilistUF_Target' or 'oUF_Target',
+			relativeTo = PA.Tukui and 'oUF_TukuiTarget' or PA.NUI and 'NihilistzscheUF_Target' or PA.ElvUI and 'ElvUF_Target' or 'oUF_Target',
 			relativePoint = 'TOP',
 			xOffset = 0,
 			yOffset = 5,
 		},
 		DragonPoints = {
 			point = 'CENTER',
-			relativeTo = PA.Tukui and 'oUF_TukuiTarget' or PA.ElvUI and 'ElvUF_Target' or PA.NUI and 'NihilistUF_Target' or 'oUF_Target',
+			relativeTo = PA.Tukui and 'oUF_TukuiTarget' or PA.NUI and 'NihilistzscheUF_Target' or PA.ElvUI and 'ElvUF_Target' or 'oUF_Target',
 			relativePoint = 'TOP',
 			xOffset = 0,
 			yOffset = 5,
